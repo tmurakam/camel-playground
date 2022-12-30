@@ -22,28 +22,15 @@ public final class CamelBasic {
         // create a CamelContext
         camelContext = new DefaultCamelContext();
 
-        //camel.addRoutes(helloRoute());
-        //camel.addRoutes(asyncExceptionRoute());
-        camelContext.addRoutes(new ThreadsQueueTestRoute());
+        //camelContext.addRoutes(helloRoute());
+        //camelContext.addRoutes(asyncExceptionRoute());
+        //camelContext.addRoutes(new ThreadsQueueTestRoute());
+        ActiveMqRoutes.createRoutes(camelContext);
 
         // start is not blocking
         camelContext.start();
 
         Thread.sleep(60 * 60 * 1000);
-    }
-
-    static void configureActiveMq() {
-        ActiveMQConnectionFactory f = new ActiveMQConnectionFactory("tcp://localhost:61616");
-        f.setUserName("admin");
-        f.setPassword("admin");
-
-        ActiveMQConfiguration config = new ActiveMQConfiguration();
-        config.setConnectionFactory(f);
-
-        ActiveMQComponent component = new ActiveMQComponent();
-        component.setConfiguration(config);
-
-        camelContext.addComponent("activemq", component);
     }
 
     static RouteBuilder helloRoute() {
