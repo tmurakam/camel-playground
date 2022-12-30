@@ -17,7 +17,8 @@ public final class CamelBasic {
         // create a CamelContext
         CamelContext camel = new DefaultCamelContext();
 
-        camel.addRoutes(route1());
+        //camel.addRoutes(helloRoute());
+        camel.addRoutes(asyncExceptionRoute());
 
         // start is not blocking
         camel.start();
@@ -25,12 +26,31 @@ public final class CamelBasic {
         Thread.sleep(60 * 60 * 1000);
     }
 
-    static RouteBuilder route1() {
+    static RouteBuilder helloRoute() {
+        return new RouteBuilder() {
+            @Override
+            public void configure() {
+                from("timer:foo")
+                        .log("Hello Camel");
+            }
+        };
+    }
+
+    static RouteBuilder asyncExceptionRoute() {
         return new RouteBuilder() {
             @Override
             public void configure() {
                 from("timer:foo?delay=0&period=10000")
-                        .log("Hello Camel");
+                        .onException(Exception.class)
+                            .log("Handle exception")
+                            .handled(true)
+                        .end()
+
+                        // throw exception on async threads
+                        .threads(10)
+                        .log("In async threads")
+                        .throwException(new RuntimeException("ex1"))
+                        .log("Should not reach here");
             }
         };
     }
