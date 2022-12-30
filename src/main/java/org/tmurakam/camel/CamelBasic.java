@@ -1,10 +1,11 @@
 package org.tmurakam.camel;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.camel.component.ActiveMQComponent;
+import org.apache.activemq.camel.component.ActiveMQConfiguration;
 import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 
@@ -13,21 +14,36 @@ import org.apache.camel.impl.DefaultCamelContext;
  */
 @Slf4j
 public final class CamelBasic {
+    private static CamelContext camelContext;
 
     public static void main(String[] args) throws Exception {
         log.info("started");
 
         // create a CamelContext
-        CamelContext camel = new DefaultCamelContext();
+        camelContext = new DefaultCamelContext();
 
         //camel.addRoutes(helloRoute());
         //camel.addRoutes(asyncExceptionRoute());
-        camel.addRoutes(threadsQueueTestRoute());
+        camelContext.addRoutes(threadsQueueTestRoute());
 
         // start is not blocking
-        camel.start();
+        camelContext.start();
 
         Thread.sleep(60 * 60 * 1000);
+    }
+
+    static void configureActiveMq() {
+        ActiveMQConnectionFactory f = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        f.setUserName("admin");
+        f.setPassword("admin");
+
+        ActiveMQConfiguration config = new ActiveMQConfiguration();
+        config.setConnectionFactory(f);
+
+        ActiveMQComponent component = new ActiveMQComponent();
+        component.setConfiguration(config);
+
+        camelContext.addComponent("activemq", component);
     }
 
     static RouteBuilder helloRoute() {
