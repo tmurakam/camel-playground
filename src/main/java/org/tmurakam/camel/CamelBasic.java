@@ -31,11 +31,6 @@ public class CamelBasic {
         //camelContext.addRoutes(asyncExceptionRoute());
         //camelContext.addRoutes(new ThreadsQueueTestRoute());
         activeMqRoutes.createRoutes();
-
-        // start is not blocking
-        camelContext.start();
-
-        Thread.sleep(60 * 60 * 1000);
     }
 
     RouteBuilder helloRoute() {
