@@ -3,7 +3,6 @@ package org.tmurakam.camel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.CamelContext;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.DefaultCamelContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,8 @@ import javax.annotation.PostConstruct;
 @EnableAutoConfiguration
 @Service
 @Slf4j
-public final class CamelBasic {
+public class CamelBasic {
+    @Autowired
     private CamelContext camelContext;
 
     @Autowired
@@ -27,13 +27,10 @@ public final class CamelBasic {
     public void postConstruct() throws Exception {
         log.info("started");
 
-        // create a CamelContext
-        camelContext = new DefaultCamelContext();
-
         //camelContext.addRoutes(helloRoute());
         //camelContext.addRoutes(asyncExceptionRoute());
         //camelContext.addRoutes(new ThreadsQueueTestRoute());
-        activeMqRoutes.createRoutes(camelContext);
+        activeMqRoutes.createRoutes();
 
         // start is not blocking
         camelContext.start();

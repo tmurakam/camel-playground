@@ -6,6 +6,7 @@ import org.apache.activemq.camel.component.ActiveMQConfiguration;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import static javax.jms.Session.AUTO_ACKNOWLEDGE;
@@ -24,19 +25,21 @@ public class ActiveMqRoutes {
     public static int CONCURRENT_CONSUMERS = 1;
     public static boolean ASYNC_CONSUMER = true;
 
+    @Autowired
+    private CamelContext camelContext;
 
-    public void createRoutes(CamelContext context) throws Exception {
-        configureActiveMq(context);
-        context.addRoutes(new ActiveMqProducerRoute());
-        context.addRoutes(new ActiveMqConsumerRoute());
+
+    public void createRoutes() throws Exception {
+        configureActiveMq();
+        camelContext.addRoutes(new ActiveMqProducerRoute());
+        camelContext.addRoutes(new ActiveMqConsumerRoute());
     }
 
 
     /**
      * Configure ActiveMQ component
-     * @param context
      */
-    private void configureActiveMq(CamelContext context) {
+    private void configureActiveMq() {
         ActiveMQConnectionFactory f = new ActiveMQConnectionFactory(BROKER_URL);
         f.setUserName(BROKER_USERNAME);
         f.setPassword(BROKER_PASSWORD);
@@ -49,7 +52,7 @@ public class ActiveMqRoutes {
         component.setAsyncConsumer(ASYNC_CONSUMER);  // This is required for 'threads'
         component.setAcknowledgementMode(AUTO_ACKNOWLEDGE);
 
-        context.addComponent("activemq", component);
+        camelContext.addComponent("activemq", component);
     }
 
     /**
