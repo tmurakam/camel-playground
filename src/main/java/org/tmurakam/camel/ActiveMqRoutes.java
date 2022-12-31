@@ -1,13 +1,18 @@
 package org.tmurakam.camel;
 
+import com.atomikos.jms.AtomikosConnectionFactoryBean;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.ActiveMQXAConnectionFactory;
 import org.apache.activemq.camel.component.ActiveMQComponent;
 import org.apache.activemq.camel.component.ActiveMQConfiguration;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.model.RouteDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.jta.JtaTransactionManager;
 
 import static javax.jms.Session.AUTO_ACKNOWLEDGE;
 
@@ -22,11 +27,14 @@ public class ActiveMqRoutes {
     public static final String BROKER_URL = "tcp://localhost:61616";
     public static final String BROKER_USERNAME = "admin";
     public static final String BROKER_PASSWORD = "admin";
-    public static int CONCURRENT_CONSUMERS = 1;
+    public static int CONCURRENT_CONSUMERS = 5;
     public static boolean ASYNC_CONSUMER = true;
+    public static boolean ENABLE_TX = false;  // Change this to true to test transaction
 
     @Autowired
     private CamelContext camelContext;
+    @Autowired
+    private JtaTransactionManager txManager;
 
 
     public void createRoutes() throws Exception {
@@ -35,17 +43,36 @@ public class ActiveMqRoutes {
         camelContext.addRoutes(new ActiveMqConsumerRoute());
     }
 
-
     /**
      * Configure ActiveMQ component
      */
     private void configureActiveMq() {
-        ActiveMQConnectionFactory f = new ActiveMQConnectionFactory(BROKER_URL);
-        f.setUserName(BROKER_USERNAME);
-        f.setPassword(BROKER_PASSWORD);
-
         ActiveMQConfiguration config = new ActiveMQConfiguration();
-        config.setConnectionFactory(f);
+
+        if (ENABLE_TX) {
+            ActiveMQXAConnectionFactory f = new ActiveMQXAConnectionFactory(BROKER_URL);
+            f.setUserName(BROKER_USERNAME);
+            f.setPassword(BROKER_PASSWORD);
+
+            AtomikosConnectionFactoryBean af = new AtomikosConnectionFactoryBean();
+            af.setUniqueResourceName("af");
+            af.setPoolSize(20);
+            af.setMaxPoolSize(40);
+            af.setXaConnectionFactory(f);
+
+            config.setConnectionFactory(af);
+            config.setUsePooledConnection(true);
+            config.setTransactionManager(txManager);
+            config.setTransacted(true);
+        } else {
+            ActiveMQConnectionFactory f = new ActiveMQConnectionFactory(BROKER_URL);
+            f.setUserName(BROKER_USERNAME);
+            f.setPassword(BROKER_PASSWORD);
+
+            config.setConnectionFactory(f);
+            config.setUsePooledConnection(true);
+            config.setTransacted(false);
+        }
 
         ActiveMQComponent component = new ActiveMQComponent();
         component.setConfiguration(config);
@@ -62,14 +89,24 @@ public class ActiveMqRoutes {
         private int counter = 0;
 
         @Override
-        public void configure() throws Exception {
-            from("timer:foo?period=1000")
-                    .process(exchange -> {
-                        counter++;
-                        exchange.getIn().setHeader("seq", counter);
-                        log.info("producer: {}", counter);
-                    })
-                    .to(QUEUE);
+        public void configure() {
+            RouteDefinition route = from("timer:foo?period=1000");
+
+            Processor p = exchange -> {
+                counter++;
+                exchange.getIn().setHeader("seq", counter);
+                log.info("producer: {}", counter);
+            };
+            
+            if (ENABLE_TX) {
+                route
+                        .transacted()
+                        .process(p)
+                        .to(QUEUE);
+            } else {
+                route.process(p)
+                        .to(QUEUE);
+            }
         }
     }
 
@@ -79,21 +116,23 @@ public class ActiveMqRoutes {
     private static class ActiveMqConsumerRoute extends RouteBuilder {
         @Override
         public void configure() throws Exception {
-            from(QUEUE + "?concurrentConsumers=" + CONCURRENT_CONSUMERS)
-                    .process(exchange -> {
-                        log.info("enqueue: {}", getSeq(exchange));
-                    })
+            RouteDefinition route = from(QUEUE + "?concurrentConsumers=" + CONCURRENT_CONSUMERS);
 
-                    // Use threads
-                    .threads()
-                    .poolSize(5).maxPoolSize(5).maxQueueSize(100)
+            Processor slowProcessor = (exchange) -> {
+                log.info("recv start: {}", getSeq(exchange));
+                Thread.sleep(3 * 1000);
+                log.info("recv finish: {}", getSeq(exchange));
+            };
 
-                    // slow processor
-                    .process(exchange -> {
-                        log.info("recv start: {}", getSeq(exchange));
-                        Thread.sleep(10 * 1000);
-                        log.info("recv finish: {}", getSeq(exchange));
-                    });
+            if (ENABLE_TX) {
+                route
+                        .transacted()
+                        .process(slowProcessor);
+            } else {
+                route
+                        .threads().poolSize(5).maxPoolSize(5).maxQueueSize(100)
+                        .process(slowProcessor);
+            }
         }
 
         private String getSeq(Exchange exchange) {
