@@ -27,9 +27,9 @@ public class ActiveMqRoutes {
     public static final String BROKER_URL = "tcp://localhost:61616";
     public static final String BROKER_USERNAME = "admin";
     public static final String BROKER_PASSWORD = "admin";
-    public static int CONCURRENT_CONSUMERS = 5;
+    public static int CONCURRENT_CONSUMERS = 1;
     public static boolean ASYNC_CONSUMER = true;
-    public static boolean ENABLE_TX = false;  // Change this to true to test transaction
+    public static boolean ENABLE_TX = true;  // Change this to true to test transaction
 
     @Autowired
     private CamelContext camelContext;
@@ -132,6 +132,7 @@ public class ActiveMqRoutes {
             if (ENABLE_TX) {
                 route
                         .transacted()
+                        .threads().poolSize(5).maxPoolSize(5).maxQueueSize(100) // This seems not work...
                         .process(slowProcessor);
             } else {
                 route
