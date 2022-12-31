@@ -6,6 +6,7 @@ import org.apache.activemq.camel.component.ActiveMQConfiguration;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.stereotype.Service;
 
 import static javax.jms.Session.AUTO_ACKNOWLEDGE;
 
@@ -14,6 +15,7 @@ import static javax.jms.Session.AUTO_ACKNOWLEDGE;
  *
  * You need to run ActiveMQ locally to test this.
  */
+@Service
 public class ActiveMqRoutes {
     public static final String QUEUE = "activemq:queue:queue1";
     public static final String BROKER_URL = "tcp://localhost:61616";
@@ -23,7 +25,7 @@ public class ActiveMqRoutes {
     public static boolean ASYNC_CONSUMER = true;
 
 
-    public static void createRoutes(CamelContext context) throws Exception {
+    public void createRoutes(CamelContext context) throws Exception {
         configureActiveMq(context);
         context.addRoutes(new ActiveMqProducerRoute());
         context.addRoutes(new ActiveMqConsumerRoute());
@@ -34,7 +36,7 @@ public class ActiveMqRoutes {
      * Configure ActiveMQ component
      * @param context
      */
-    static void configureActiveMq(CamelContext context) {
+    private void configureActiveMq(CamelContext context) {
         ActiveMQConnectionFactory f = new ActiveMQConnectionFactory(BROKER_URL);
         f.setUserName(BROKER_USERNAME);
         f.setPassword(BROKER_PASSWORD);
@@ -53,7 +55,7 @@ public class ActiveMqRoutes {
     /**
      * Producer route. Send message periodically.
      */
-    public static class ActiveMqProducerRoute extends RouteBuilder {
+    private static class ActiveMqProducerRoute extends RouteBuilder {
         private int counter = 0;
 
         @Override
@@ -71,7 +73,7 @@ public class ActiveMqRoutes {
     /**
      * Consumer route.
      */
-    public static class ActiveMqConsumerRoute extends RouteBuilder {
+    private static class ActiveMqConsumerRoute extends RouteBuilder {
         @Override
         public void configure() throws Exception {
             from(QUEUE + "?concurrentConsumers=" + CONCURRENT_CONSUMERS)
