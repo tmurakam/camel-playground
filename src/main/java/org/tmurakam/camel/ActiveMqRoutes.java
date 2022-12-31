@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
-import static javax.jms.Session.AUTO_ACKNOWLEDGE;
+import static javax.jms.Session.*;
 
 /**
  * Active MQ route test.
@@ -76,8 +76,12 @@ public class ActiveMqRoutes {
 
         ActiveMQComponent component = new ActiveMQComponent();
         component.setConfiguration(config);
-        component.setAsyncConsumer(ASYNC_CONSUMER);  // This is required for 'threads'
-        component.setAcknowledgementMode(AUTO_ACKNOWLEDGE);
+        component.setAsyncConsumer(ASYNC_CONSUMER);  // This is required for 'threads'. Note: This does not work with transaction
+        if (ENABLE_TX) {
+            component.setAcknowledgementMode(SESSION_TRANSACTED);
+        } else {
+            component.setAcknowledgementMode(AUTO_ACKNOWLEDGE);
+        }
 
         camelContext.addComponent("activemq", component);
     }
@@ -104,7 +108,8 @@ public class ActiveMqRoutes {
                         .process(p)
                         .to(QUEUE);
             } else {
-                route.process(p)
+                route
+                        .process(p)
                         .to(QUEUE);
             }
         }
