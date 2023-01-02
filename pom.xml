@@ -19,7 +19,7 @@
     <description>Camel Playground</description>
 
     <properties>
-        <java.version>8</java.version>
+        <java.version>17</java.version>
 
         <camel.version>2.25.3</camel.version>
         <activemq-camel.version>5.16.4</activemq-camel.version>
