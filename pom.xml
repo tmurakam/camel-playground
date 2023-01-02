@@ -21,8 +21,7 @@
     <properties>
         <java.version>17</java.version>
 
-        <camel.version>2.25.3</camel.version>
-        <activemq-camel.version>5.16.4</activemq-camel.version>
+        <camel.version>3.20.0</camel.version>
         <lombok.version>1.18.24</lombok.version>
     </properties>
 
@@ -52,13 +51,17 @@
 
         <!-- camel -->
         <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-spring-boot-starter</artifactId>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-spring-boot</artifactId>
+            <version>${camel.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.activemq</groupId>
-            <artifactId>activemq-camel</artifactId>
-            <version>${activemq-camel.version}</version>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-timer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-activemq</artifactId>
         </dependency>
 
         <dependency>
